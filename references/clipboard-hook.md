@@ -1,6 +1,6 @@
 # Clipboard Hook（并发零踩踏无损提取脚本）
 
-> 核心原则：只做**页内静默拦截**，并发期间**严禁调用原始剪贴板方法回写操作系统剪贴板**（防止多路子智能体争抢系统剪贴板、触发 `NotAllowedError` 或丢失 `navigator.clipboard.write([ClipboardItem])`）。
+> 核心原则：只做**页内静默拦截**，并发期间**严禁调用原始剪贴板方法回写操作系统剪贴板**（防止多路子智能体争抢系统剪贴板、触发 `NotAllowedError` 或丢失 `navigator.clipboard.write([ClipboardItem])`）。注意部分隔离上下文（Extension `ISOLATED` world）或严格 CSP 站点会阻止覆写 `MAIN` world 剪贴板，若捕获长度为 `0` 属正常现象，按下面第 3 步自动切回平台专属 DOM / `data-markdown-copy-text` 提取。
 
 ```javascript
 // 1. 点击「消息级」复制按钮前注入（兼容 writeText / write([ClipboardItem]) / copy 事件）

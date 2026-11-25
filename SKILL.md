@@ -1,14 +1,16 @@
 ---
 name: ask-master
 description: >-
-  当遇到复杂困难问题、知识盲区拿不定主意、复杂仓库架构设计、科研实验归因、顶会级方案设计、疑难代码 Debug 或用户主动要求问师傅/ask master时调用：由主智能体决定请教 1 到 3 位网页端满血师父，按「1 网页 1 子智能体」并行派发轻量级传话子智能体通过 OpenCode Browse 驱动本地真实浏览器，原封不动传话、传文件并下载全部回复与生成产物，最终由主智能体亲自汇总分析与拍板。
+  当遇到复杂架构设计、科研实验归因、疑难 Bug 或知识盲区时调用：主智能体按「1 网页 1 专属子智能体」并发派发轻量级传话代理，经真实浏览器 MCP（默认 OpenCode Browse，可选 AgentLimb）向网页端满血模型（ChatGPT / Gemini / AIStudio）完整传话与上传文件，无损回收正文与产物后由主智能体汇总拍板。
 ---
 
-# Ask Master（主脑编排 + 1-to-1 传话子智能体跨模型请教工作流）
+# Ask Master（主脑编排 + 1-to-1 传话子智能体工作流）
 
-遇到高难度或知识盲区问题时，采用 **主智能体统筹 + 并行 1-to-1 纯传话子智能体** 架构，通过 `browse` MCP（`OpenCode Browse`）驱动本地已登录的真实浏览器向网页端满血师父请教。
+采用 **主智能体统筹 + 并行 1-to-1 纯传话子智能体** 架构，通过本地真实浏览器 MCP（默认 `OpenCode Browse`，可选本地备选 `AgentLimb`）向已登录网页端满血模型请教。
 
-> **前置检查**：先调用 `browse` 的 `status`；若未安装或未连接，按 `https://opencode.ai/product/browse` 完成安装与浏览器配对后再继续。
+> **前置检查**：
+> - **默认后端（OpenCode Browse）**：先调用 `browse` 的 `status`；未连接则按 `https://opencode.ai/product/browse` 安装配对。
+> - **可选后端（[AgentLimb](https://github.com/hooosberg/AgentLimb)）**：若用户处于纯本机环境且显式使用 `AgentLimb`（`ping` + `tabs_context` 可用），按文末「六、AgentLimb 兼容映射」执行（`v0.8+` 多子代理共享同扩展时串行调度，不幻觉调用 `execute` / `handoff()`）。
 
 ---
 
@@ -77,3 +79,10 @@ description: >-
 - **Clipboard 零系统剪贴板抢占**：同时兼容 `writeText`、`write([ClipboardItem])` 与 `copy` 事件，且并发期间**严禁回写系统剪贴板**，并做 DOM 长度校验。
 - **双语兼容、可见性过滤与正反断言**：选择器优先 `data-testid`/`role` + 中英正则；只统计 `:visible` 停止按钮；JS 正则不含中文 `\b`；Gemini 思考等级必做正反双校验，杜绝 `"低 快速、高效"` 假阳性。
 - **禁截图轮询 & 禁超长 stdout**：用静音循环/定时唤醒替代 `snapshot()` 轮询；长回复用 `files.write()` 落盘防 100 KB 截断；遇登录/验证码立即 `handoff()`，勿关顶部调试提示条。
+
+---
+
+## 六、可选后端兼容映射（AgentLimb `v0.8+`，仅显式启用时使用）
+
+- **工具映射**：`status` → `ping` + `tabs_context`；`tabs(new)` → `tab_new`（多账号 Chrome Profile 传 `browser: "<alias>"`）；`execute` → `browser_batch`（≤20 步）+ `javascript_eval`；遇人工验证经 `say` 提醒用户并返回 `needs_handoff`。
+- **并发与传输边界**：AgentLimb 同一时刻仅允许单一控制器持有浏览权，多师父须串行调度或分独立 Profile；无原生 `filechooser` 时，超长指令走 `javascript_eval` 注入，多文件附件需 `needs_handoff` 人工拖入，下载文件从 `~/Downloads` 按时间戳核验移入 `artifacts/`；Windows 安装路径须为纯英文。
