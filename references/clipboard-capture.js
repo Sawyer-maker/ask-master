@@ -74,7 +74,7 @@ async function captureReply(copyButton, domSelector, archive) {
     }
     if (!meta?.length || meta.pending) throw new Error("No stable clipboard capture.");
     const result = await readBounded(meta.length, (offset, end) =>
-      main(({ key, offset, end }) => window[key]?.text.slice(offset, end), { key, offset, end }));
+      main(readPageChunk, { key, offset, end, clipboard: true }));
     if (domSelector) {
       const anchors = await page.evaluate((selector) => {
         const matches = document.querySelectorAll(selector);
@@ -94,15 +94,28 @@ async function captureReply(copyButton, domSelector, archive) {
   } finally { await main(k => window[k]?.dispose(), key); }
 }
 
+// Runs in the page: do not send either half of a surrogate pair across eval.
+function readPageChunk({ key, offset, end, clipboard }) {
+  const value = clipboard ? window[key].text : window[key];
+  const left = value.charCodeAt(end - 1);
+  const right = value.charCodeAt(end);
+  if (left >= 0xd800 && left <= 0xdbff && right >= 0xdc00 && right <= 0xdfff) end--;
+  return { end, text: value.slice(offset, end) };
+}
+
 async function readBounded(length, read) {
   if (!Number.isSafeInteger(length) || length < 1) throw new Error("Empty or invalid reply.");
   const chunks = [];
   // Even worst-case JSON string escaping stays below Browse v0.1.5's 100,000-character cap.
-  for (let offset = 0; offset < length; offset += 8192) {
+  for (let offset = 0; offset < length;) {
     const end = Math.min(length, offset + 8192);
     const chunk = await read(offset, end);
-    if (typeof chunk !== "string" || chunk.length !== end - offset) throw new Error("Truncated reply chunk.");
-    chunks.push(chunk);
+    const validEnd = chunk.end === end || (end < length && chunk.end === end - 1);
+    if (!validEnd || chunk.text.length !== chunk.end - offset) {
+      throw new Error("Truncated reply chunk.");
+    }
+    chunks.push(chunk.text);
+    offset = chunk.end;
   }
   return chunks.join("");
 }
@@ -118,7 +131,7 @@ async function archiveDomReply(domSelector, archive) {
   }, { selector: domSelector, key });
   try {
     const result = await readBounded(length, (offset, end) =>
-      page.evaluate(({ key, offset, end }) => window[key]?.slice(offset, end), { key, offset, end }));
+      page.evaluate(readPageChunk, { key, offset, end }));
     return { path: await files.write(archive, result), chars: length, source: "dom-text" };
   } finally { await page.evaluate(k => { delete window[k]; }, key); }
 }
