@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>主智能体唯一大脑 + 1-to-1 并发传话子智能体</strong><br>
-  让本地便宜高速的「小徒弟」通过真实浏览器 MCP（默认 <a href="https://opencode.ai/product/browse">OpenCode Browse</a>，可选 <a href="https://github.com/hooosberg/AgentLimb">AgentLimb</a>）并发请教网页端满血「大师父」（<code>ChatGPT</code> · <code>Gemini</code> · <code>AIStudio</code>）：原封不动带话传文件，无损带回正文与全套产物，由主智能体亲自汇总拍板！
+  让本地便宜高速的「小徒弟」通过 <a href="https://opencode.ai/product/browse">OpenCode Browse</a> 并发请教网页端满血「大师父」（<code>ChatGPT</code> · <code>Gemini</code> · <code>AIStudio</code>）：原封不动带话传文件，无损带回正文与全套产物，由主智能体亲自汇总拍板！（下文亦附 <a href="https://github.com/hooosberg/AgentLimb">AgentLimb</a> 等浏览器控制方案对比与选型参考）
 </p>
 
 <p align="center">
@@ -68,9 +68,8 @@
 
 ## 快速开始
 
-1. **安装并配对浏览器控制 MCP**
-   - **默认首选**：按 [https://opencode.ai/product/browse](https://opencode.ai/product/browse) 安装 OpenCode Browse 并与已登录的 Chrome / Edge 配对，确认 `browse` 的 `status` 返回 `"connected": true`。
-   - **本机备选**：如需零外部依赖与多 Profile 切换，可安装 [hooosberg/AgentLimb](https://github.com/hooosberg/AgentLimb) 并在 `ping` + `tabs_context` 就绪后启用。
+1. **安装并配对 OpenCode Browse**
+   - 本 Skill 直接使用 [**OpenCode Browse**](https://opencode.ai/product/browse)：按官方指引完成安装并与已登录的 Chrome / Edge 配对，确认 `browse` 的 `status` 返回 `"connected": true`（其他如 [AgentLimb](https://github.com/hooosberg/AgentLimb) 等方案定位见上方对比表，仅作生态选型参考，不在本 Skill 内置驱动）。
 2. **安装 Skill**
    克隆仓库并将 `SKILL.md` 与 `references/` 复制到 Agent 全局技能目录（例如 `~/.gemini/config/skills/ask-master/` 或 `.claude/skills/ask-master/`）：
    ```bash

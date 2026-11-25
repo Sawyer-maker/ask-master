@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Single-Brain Orchestration + 1-to-1 Concurrent Messenger Sub-Agents</strong><br>
-  Pair fast, low-cost local "apprentices" with full-strength web frontier "masters" (<code>ChatGPT</code> · <code>Gemini</code> · <code>AIStudio</code>) via a real-browser MCP bridge (default: <a href="https://opencode.ai/product/browse">OpenCode Browse</a>; optional local alternative: <a href="https://github.com/hooosberg/AgentLimb">AgentLimb</a>)—forwarding prompts and up to 10 standalone files verbatim, harvesting raw replies and generated artifacts, and leaving final decisions strictly to the Main Agent.
+  Pair fast, low-cost local "apprentices" with full-strength web frontier "masters" (<code>ChatGPT</code> · <code>Gemini</code> · <code>AIStudio</code>) via <a href="https://opencode.ai/product/browse">OpenCode Browse</a>—forwarding prompts and up to 10 standalone files verbatim, harvesting raw replies and generated artifacts, and leaving final decisions strictly to the Main Agent. (Includes an ecosystem comparison with <a href="https://github.com/hooosberg/AgentLimb">AgentLimb</a> and other browser MCP bridges below.)
 </p>
 
 <p align="center">
@@ -68,9 +68,8 @@ Unified policy: **Always lock onto the strongest available model and highest thi
 
 ## Quick Start
 
-1. **Install & Pair Your Browser Control MCP**
-   - **Default**: Follow [https://opencode.ai/product/browse](https://opencode.ai/product/browse), pair with logged-in Chrome/Edge, and verify `browse` `status` reports `"connected": true`.
-   - **Optional Local Backend**: Install [hooosberg/AgentLimb](https://github.com/hooosberg/AgentLimb) for zero-dep local multi-profile Chrome control (`ping` + `tabs_context`).
+1. **Install & Pair OpenCode Browse**
+   - This skill drives [**OpenCode Browse**](https://opencode.ai/product/browse): follow its setup guide, pair it with your logged-in Chrome/Edge, and verify `browse` `status` reports `"connected": true` (other browser MCP projects such as [AgentLimb](https://github.com/hooosberg/AgentLimb) are evaluated in the comparison table above for context, not bundled inside the Skill playbooks).
 2. **Install the Skill**
    Clone the repo and copy `SKILL.md` + `references/` into your agent's global skills folder (e.g., `~/.gemini/config/skills/ask-master/` or `.claude/skills/ask-master/`):
    ```bash
