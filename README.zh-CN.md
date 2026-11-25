@@ -92,7 +92,7 @@
 | 师父代号 | 对应平台与路由状态 | 最高战力锁定策略（Pre-Send 硬断言） | 操作手册 |
 | --- | --- | --- | --- |
 | **OpenAI Astra** | [ChatGPT](https://chatgpt.com/)（内置路由） | 只选对话模式（非临时聊天）+ 可用最强模型与最右思考滑块（`aria-valuenow === aria-valuemax`，如 `6 Pro` 满档） | [references/chatgpt.md](references/chatgpt.md) |
-| **Gemini Neon** | [AIStudio](https://aistudio.google.com/prompts/new_chat?model=gemini-4-neon) / [Gemini](https://gemini.google.com/app)（内置双入口） | AIStudio：回读确认模型名 + `Thinking Level === Extra High`（降级 `High` 重试须标 `degraded_completed`）；Gemini：未锁定时选 `4 Carbon` 否则 `4 Neon` + 正反双校验命中 **`高（超级详尽）`** | [references/aistudio.md](references/aistudio.md) · [references/gemini.md](references/gemini.md) |
+| **Gemini Neon** | [AIStudio](https://aistudio.google.com/prompts/new_chat?model=gemini-4-neon) / [Gemini](https://gemini.google.com/app)（内置双入口） | AIStudio：回读确认模型名 + `Thinking Level === Extra High`（未经授权不降档）；Gemini：未锁定时选 `4 Carbon` 否则 `4 Neon` + 正反双校验命中 **`高（超级详尽）`** | [references/aistudio.md](references/aistudio.md) · [references/gemini.md](references/gemini.md) |
 | **Claude Fable** | Claude Web（可扩展预留位） | 遵循同款 Pre-Send 硬断言、无损提取与全量产物下载规范，新增 `references/claude.md` 即可接入（见 [CONTRIBUTING.md](./CONTRIBUTING.md)） | 扩展预留 |
 
 ---
@@ -106,7 +106,7 @@
 | **定位与底层机制** | Rust Relay + 浏览器扩展 + QuickJS 沙箱 | 零依赖 Node Host + MV3 扩展 + 持久 CDP | Google 官方 Puppeteer + CDP（免扩展） | 微软官方跨浏览器自动化 MCP |
 | **真实登录态与防风控** | ★★★★★ 复用日常 Chrome/Edge，拟人输入 + 原生 `handoff()` 人工接管验证码 | ★★★★☆ 复用日常 Chrome + 多 Profile 别名路由；CSP 无感；无阻塞式 `handoff` | ★★★★☆ `--autoConnect`（Chrome 144+）可用但每次弹窗需人工点 Allow | ★★☆☆☆ 默认启隔离浏览器易触发 2FA/风控；`--extension` 桥接仍有边缘限制 |
 | **Token 与工具效率** | ★★★★★ 仅 3 工具 Schema（~7.5KB），单次 `execute` 串联断言+上传+轮询+写盘 | ★★★★☆ `v0.8` 提供 16 工具、`browser_batch`（≤20 步）与 `javascript_eval` | ★★★☆☆ 默认工具较多（可用 `--slim`），`evaluate_script` 支持长文直接写盘 | ★★☆☆☆ 默认每步回传全量 A11y 树很费 Token（需切换 `browser_run_code` 压降） |
-| **1-to-1 并发与文件能力** | ★★★★★ 显式 `tabId` 后台并发 + 多文件 `filechooser` + `files.write` | ★★☆☆☆ 单连接可切 Tab，但多独立 MCP 客户端有**单控制器串行锁**；无原生 `filechooser`/下载拦截 API | ★★★★☆ `v1.8+` 默认 `--pageIdRouting` 与多文件数组上传；下载需扫默认目录 | ★★★☆☆ 原生上传与 `--output-dir` 下载最强；但工具缺无状态 `tabId` 参数易抢焦点 |
+| **1-to-1 并发与文件能力** | ★★★★★ 显式 `tabId` 后台并发 + 原生多文件 `upload` + `files.write` | ★★☆☆☆ 单连接可切 Tab，但多独立 MCP 客户端有**单控制器串行锁**；无原生 `filechooser`/下载拦截 API | ★★★★☆ `v1.8+` 默认 `--pageIdRouting` 与多文件数组上传；下载需扫默认目录 | ★★★☆☆ 原生上传与 `--output-dir` 下载最强；但工具缺无状态 `tabId` 参数易抢焦点 |
 | **上手门槛与跨端支持** | 首次需一次性配对码；原生支持 `browse install --remote`（SSH 隧道连本地） | **一句提示词免配对码**（30 分钟自授权）+ 国产客户端友好；仅限 `127.0.0.1`、Win 需纯英文路径 | 需 Chrome 144+ 并开启远程调试；SSH 仅可隧道转发 CDP | 零配置启动；SSH 可走 `--port` 但本地/远端文件路径割裂 |
 
 - **优缺点与局限速览**：
@@ -140,7 +140,7 @@ ask-master/
 
 - **页内无副作用 Clipboard Hook**：同时拦截 `writeText`、`write([ClipboardItem])` 与 `copy` 事件，并发期间**严禁回写系统剪贴板**；遇扩展隔离 world 或严格 CSP 阻止拦截时自动降级到平台专属 DOM / `data-markdown-copy-text` 提取。
 - **杜绝秒判完成与误点代码块**：仅统计助手侧消息数（`prevAssistantTurnCount`）+ 发送后 15s 起跑确认 + 4–5s 连续两帧 Stop 消失防抖；精准点击消息级复制按钮，绝不误点代码块 `Copy code`。
-- **`Uint8Array` 解码与双语正反断言**：对 `await files.read()` 强制 `new TextDecoder("utf-8").decode(...)`（根除 `45,45,45,...` 字节乱码）；选择器中英双语兼容、不用中文 `\b`、Gemini 思考等级正反双校验根除 `低 快速、高效` 假阳性。
+- **`Uint8Array` 解码与双语正反断言**：文本用 `await files.read(path, "utf8")`（根除 `45,45,45,...` 字节乱码）；选择器中英双语兼容、不用中文 `\b`、Gemini 思考等级正反双校验根除 `低 快速、高效` 假阳性。
 - **轮次隔离与同任务上下文复用**：按 `.ask-master/<run_id>/<master>/r<round>/` 隔离保存，防止 Round 2 覆盖 Round 1；核验 `(run_id, master, conversationUrl)` 一致后复用原标签页与原专属子智能体续聊，独立新任务强制新开会话。
 
 </details>

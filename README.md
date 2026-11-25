@@ -92,7 +92,7 @@ Unified policy: **Always lock onto the strongest available model and highest thi
 | Master | Platform & Route Status | Max-Strength Locking Policy (Pre-Send Hard Assertion) | Playbook |
 | --- | --- | --- | --- |
 | **OpenAI Astra** | [ChatGPT](https://chatgpt.com/) (Built-in Route) | Chat mode only + Temporary Chat OFF + strongest available model & rightmost thinking slider (`aria-valuenow === aria-valuemax`, e.g., `6 Pro`) | [references/chatgpt.md](references/chatgpt.md) |
-| **Gemini Neon** | [AIStudio](https://aistudio.google.com/prompts/new_chat?model=gemini-4-neon) / [Gemini](https://gemini.google.com/app) (Built-in Dual Endpoints) | AIStudio: verify model card + `Thinking Level === Extra High` (`High` retry reported explicitly as `degraded_completed`); Gemini: `4 Carbon` (if unlocked) else `4 Neon` + positive/negative assertion for `高（超级详尽）` / `High (Extremely detailed)` | [references/aistudio.md](references/aistudio.md) · [references/gemini.md](references/gemini.md) |
+| **Gemini Neon** | [AIStudio](https://aistudio.google.com/prompts/new_chat?model=gemini-4-neon) / [Gemini](https://gemini.google.com/app) (Built-in Dual Endpoints) | AIStudio: verify model card + `Thinking Level === Extra High` (no downgrade without approval); Gemini: `4 Carbon` (if unlocked) else `4 Neon` + positive/negative assertion for `高（超级详尽）` / `High (Extremely detailed)` | [references/aistudio.md](references/aistudio.md) · [references/gemini.md](references/gemini.md) |
 | **Claude Fable** | Claude Web (Extensible Slot) | Follows the identical Pre-Send hard-assertion, lossless extraction & artifact-capture protocol; add `references/claude.md` to enable (see [CONTRIBUTING.md](./CONTRIBUTING.md)) | Extensible |
 
 ---
@@ -140,7 +140,7 @@ ask-master/
 
 - **In-Page Side-Effect-Free Clipboard Hook**: Intercepts `writeText`, `write([ClipboardItem])`, and `copy` events in-page **without** writing back to the OS clipboard during parallel runs; falls back cleanly to DOM / `data-markdown-copy-text` when extension isolated worlds or strict CSP block `MAIN`-world interception.
 - **No False-Positive Completion**: Tracks assistant-only turns (`prevAssistantTurnCount`) + 15s post-send start confirmation + 4–5s double-frame Stop debounce; targets message-level copy controls instead of code-block buttons.
-- **`Uint8Array` & Locale Safety**: Decodes `await files.read()` via `new TextDecoder("utf-8").decode(...)` to prevent raw byte stringification (`45,45,45,...`), uses bilingual regexes without Chinese `\b`, and rejects Gemini `"低 快速、高效"` false positives via positive/negative assertions.
+- **`Uint8Array` & Locale Safety**: Uses `await files.read(path, "utf8")` for text to prevent raw byte stringification (`45,45,45,...`), uses bilingual regexes without Chinese `\b`, and rejects Gemini `"低 快速、高效"` false positives via positive/negative assertions.
 - **Round Isolation & Context Reuse**: Archives under `.ask-master/<run_id>/<master>/r<round>/` so Round 2 follow-ups never overwrite Round 1; validates `(run_id, master, conversationUrl)` before reusing open tabs, while starting fresh sessions for unrelated tasks.
 
 </details>

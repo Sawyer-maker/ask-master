@@ -8,7 +8,7 @@ description: >-
 
 主智能体统筹、轻量级子智能体按 **「1 网页 1 专属代理」** 并行执行，通过 `browse` MCP（`OpenCode Browse`）驱动已登录的本地真实浏览器向网页端满血模型请教。
 
-> **前置检查**：先调用 `browse` 的 `status`；未安装或未连接时，按 `https://opencode.ai/product/browse` 完成安装与配对。
+> 先确认 OpenCode 加载的是这份 skill（以返回的 base directory 为准），并检查 `browse status`。Browser 片段使用同一 Browse 的 `execute`；OpenCode 默认若只暴露原生工具，用 `browse execute --file <script.js> --tab <tabId>`，不改全局配置。
 
 ## 一、职责边界与安全红线
 
@@ -30,19 +30,18 @@ description: >-
 ## 三、隔离与上下文复用
 
 - **并发与轮次隔离**：子智能体必须通过 `tabs(action: "new", keepOpen: true)` 申请独立 `tabId` 并在每次 `execute` 显式传入；归档统一落盘至 `.ask-master/<run_id>/<master>/r<round>/`（`response.md` + `artifacts/`），状态写于 `.ask-master/<run_id>/<master>/state.json`；沙箱暂存文件加 `<run_id>_r<round>_<master>_` 前缀（同名路径双下划线展平）。
-- **上下文策略**：同任务续聊或交叉评审须校验 `(run_id, master, conversationUrl)` 一致，直接复用**原专属子智能体与保留的 `tabId`**（断连先查永久 URL 是否已有回复，禁盲目重发）；独立新任务强制新开会话。
+- **上下文策略**：同任务续聊或交叉评审须校验 `(run_id, master, conversationUrl)` 一致，直接复用**原专属子智能体与保留的 `tabId`**（断连用永久 URL 核对上一轮；发送结果不明时先核对本轮用户消息，不能因无助手回复就重发）；独立新任务强制新开会话。
 
 ## 四、4 步标准执行流程
 
 1. **备料脱敏（主脑）**：在 `.ask-master/<run_id>/staging/` 副本排除 `.env*`、`*.pem`、`*.key`、`*credentials*.json`、`id_rsa*`、`.npmrc`、`*.p12`、`*.tfvars` 及大二进制（`*.pt`、`*.parquet`、`>10MB`），扫描替换明文密钥（`sk-`/`sk-ant-`/`ghp_`/`github_pat_`/`AIza`/`AKIA...`/`Bearer`/`PRIVATE KEY`）为 `<REDACTED_SECRET>`，跳过 0 字节文件（冷门后缀复制加 `.txt` 附映射表），至多 **10 个独立文件**；并发派发子智能体。
-2. **发送与断言（子智能体）**：首次 `execute` 用 `files.path("__probe__.txt")` 获取沙箱目录（禁硬编码路径），只读对应手册与 [references/clipboard-hook.md](references/clipboard-hook.md)；`filechooser` 原生上传并断言附件卡片全量就绪且无上传 spinner；记录助手侧计数 `prevAssistantTurnCount` 后发送，分两阶段写 `state.json`（发后即记 `tabId` 与基线，URL 跳变后回写永久 `conversationUrl`）。
-3. **轮询与全量落盘**：发送后等至多 15s 确认起跑（`可见 Stop > 0`、`curAssistantTurnCount > prevAssistantTurnCount` 或 `Thinking`）；45s 内静音轮询，长思考可用 `schedule` 60s 巡检（常规超时 20m，Deep Research 40m）；间隔 4–5s 连续 2 次确认 `可见 Stop === 0`、无活态思考/搜索指示、末条回复非空稳定。用页内 Clipboard Hook 点「消息级」复制并做 DOM 校验写 `response.md`；同步原生下载或抓取原尺寸图片、代码与 Canvas 面板保存至 `artifacts/`。
+2. **发送与断言（子智能体）**：首次 `execute` 用 `files.path("__probe__.txt")` 获取沙箱目录（禁硬编码路径），只读对应手册与 [references/clipboard-hook.md](references/clipboard-hook.md)；用 Browse `upload` 或 `locator.setInputFiles` 上传 relay 主机路径并断言附件卡片全量就绪且无上传 spinner；记录助手侧计数 `prevAssistantTurnCount` 后发送，提交前写 `state.json`（`tabId`、本轮、助手基线与待确认状态）；确认后一并写入永久 `conversationUrl`（不可用则保留待恢复标记）。
+3. **轮询与全量落盘**：发送后等至多 15s 确认起跑（`可见 Stop > 0`、`curAssistantTurnCount > prevAssistantTurnCount` 或 `Thinking`）；45s 内静音轮询，长思考每 60s 用短调用巡检（常规超时 20m，Deep Research 40m）；间隔 4–5s 连续 2 次确认 `可见 Stop === 0`、无活态思考/搜索指示、末条回复非空稳定。按 [归档手册](references/clipboard-hook.md) 在网页主执行环境拦截消息级复制，分段归档，DOM 兜底标降级；同步原生下载或抓取原尺寸图片、代码与 Canvas 面板保存至 `artifacts/`。
 4. **保留现场并交付收据 → 主脑拍板**：**勿关标签页**。子智能体只交 **5 项收据**（status：`completed` / `degraded_completed` / `needs_clarification` / `needs_handoff` / `failed`）：`master / status` | `实际模型、思考档与开关` | `tabId 与永久 URL` | `耗时 / Token / 字符数` | `response.md 与 artifacts 清单`；由主智能体汇总拍板。
 
 ## 五、全局 P0 红线
 
 - **禁长文本 `fill()`**：>1,500 字走原生文件上传（或 AIStudio `nativeSetter`），防富文本卡死与 CDP 超时。
-- **`files.read()` 返回 `Uint8Array`**：必须 `await` 且用 `new TextDecoder("utf-8").decode(b)` 解码，否则拼接会变 `45,45,45,...` 字节数字乱码。
-- **Clipboard 零系统抢占**：Hook 仅页内拦截 `writeText`、`write([ClipboardItem])` 与 `copy` 事件，并发禁回写系统剪贴板；若隔离上下文/CSP 拦截失败，自动切平台 DOM 提取。
+- **按类型读文件**：文本用 `await files.read(path, "utf8")`；省略编码会返回 `Uint8Array`，不能直接拼接。
 - **精准选择器与计数**：只统计 `:visible` 停止按钮与助手侧容器（防用户气泡触发秒判）；JS 正则不用中文 `\b`；Gemini 必须正反双校验命中 `高`，严禁被 `"低 快速、高效"` 误导。
-- **轻量监控与接管**：禁 `snapshot()` 轮询，长输出用 `files.write()` 落盘防 100 KB 截断；遇登录/验证码立即 `handoff()`，勿关顶部调试提示条。
+- **轻量监控与接管**：禁 `snapshot()` 轮询，禁止在 `eval` 或 `execute` 单次返回长回复；遇登录/验证码立即 `handoff()`，勿关顶部调试提示条。

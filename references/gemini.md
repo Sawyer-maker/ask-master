@@ -15,10 +15,10 @@
     若 3 次重试仍未通过，立即 `handoff()`，严禁降级发送。
   - **模式选择（仅 Gemini 区分）**：按任务在输入框下方选择 **`对话`** 或 **`任务`**；按需在 `+` 菜单开启 `在 Google 上搜索` / `Deep Research`（须检测并点击 `开始研究 / Start research`）。
 - **多附件上传（至多 10 个）与全量就绪硬断言**：
-  - 点击 `/上传和工具|Upload and tools/i` 展开菜单，使用 `Promise.all([page.waitForEvent("filechooser", { timeout: 10000 }), uploadItem.click()])`（对应 `menuitem /上传文件|Upload files/i`）传入最多 10 个本地路径（跳过 0 字节文件）。
+  - Browse v0.1.5 不支持等待 `filechooser`。定位唯一且接受所需文件类型的 `input[type=file]`，用 `await input.setInputFiles(relayPaths)` 或原生 `browse.upload`（`selector` 与 `files`）上传。路径以 relay 主机为准，核对附件名称和上传就绪状态后才发送。找不到输入就接管，不猜选择器。
   - **全量附件就绪断言**：轮询上限 30s，确认 `close <filename>` 预览 chip 数量 **`>= files.length`** 且上传中 spinner（`mat-progress-spinner:visible, [aria-label*="上传中"]:visible, [aria-label*="Uploading"]:visible`）为 `0`，**未全量就绪严禁发送**。
   - 若输入区因窄屏 `width=0` 不可见，先点 `/关闭边栏|Close sidebar/i`；填入指令并记录 `prevAssistantTurnCount`（`model-response` 数量）后点击 `/发送|Send/i`。
 - **完成防抖与全量提取（含 Canvas / 原图下载）**：
   - `page.locator('button[aria-label*="停止"]:visible, button[aria-label*="Stop"]:visible').count() === 0` 且 `curAssistantTurnCount > prevAssistantTurnCount` 连续 2 帧稳定。
-  - 先定位末条 `model-response`，点击其底部消息级复制按钮（避开代码块 Copy）配合 [clipboard-hook.md](clipboard-hook.md) 提取无损 Markdown，兜底取末条 `model-response message-content, .model-response-text` 文本。
+  - 先定位末条 `model-response`，点击其底部消息级复制按钮（避开代码块 Copy）配合 [clipboard-hook.md](clipboard-hook.md) 提取无损 Markdown，降级时分段读取末条 `model-response message-content, .model-response-text` 文本。
   - **全量产物下载**：若开启 Canvas 或 Deep Research 打开了右侧沉浸面板，必须额外抓取面板完整正文存为 `artifacts/canvas_<idx>.md`；若生成图片或图表，必须下载完整原尺寸文件保存至 `artifacts/`（勿以缩略图替代原图）。
